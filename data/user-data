@@ -1,0 +1,78 @@
+#cloud-config
+# vi: set ft=yaml :
+
+---
+coreos:
+  units:
+  - name: docker-tcp.socket
+    command: start
+    enable: true
+    content: |
+      [Unit]
+      Description=Docker Socket for the API
+
+      [Socket]
+      ListenStream=2375
+      Service=docker.service
+      BindIPv6Only=both
+
+      [Install]
+      WantedBy=sockets.target
+
+  - name: prometheus.service
+    command: start
+    enable: true
+    content: |
+      [Unit]
+      Description=Prometheus
+      After=docker.service
+      Requires=docker.service
+
+      [Service]
+      ExecStartPre=/usr/bin/mkdir -p /home/coreos/data/prometheus
+      ExecStart=/usr/bin/docker run --rm --name prometheus \
+                  -p 9090:9090 \
+                  -v /home/coreos/data/prometheus:/prometheus \
+                  -v /var/lib/coreos-vagrant/prometheus:/etc/prometheus \
+                prom/prometheus:0.18.0rc1
+      ExecStop=/usr/bin/docker stop prometheus
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - name: cadvisor.service
+    command: start
+    enable: true
+    content: |
+      [Unit]
+      Description=cAdvisor
+      After=docker.service
+      Requires=docker.service
+
+      [Service]
+      ExecStart=/usr/bin/docker run --rm \
+                  -p 8080:8080 \
+                  -v /var/run:/var/run:rw \
+                  -v /:/rootfs:ro \
+                  -v /sys:/sys:ro \
+                  -v /var/lib/docker/:/var/lib/docker:ro \
+                  --name=cadvisor \
+                  google/cadvisor:latest
+      ExecStop=/usr/bin/docker stop prometheus
+
+  - name: grafana.service
+    command: start
+    enable: true
+    content: |
+      [Unit]
+      Description=grafana
+      After=docker.service
+      Requires=docker.service
+
+      [Service]
+      ExecStart=/usr/bin/docker run --rm \
+                  -p 3000:3000 \
+                  -v /home/coreos/data/grafana:/var/lib/grafana \
+                  --name=grafana \
+                  grafana/grafana:3.0.0-beta5
+      ExecStop=/usr/bin/docker stop grafana

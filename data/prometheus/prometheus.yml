@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 15s # By default, scrape targets every 15 seconds.
+  evaluation_interval: 15s # By default, scrape targets every 15 seconds.
+  # scrape_timeout is set to the global default (10s).
+
+  # Attach these extra labels to all time-series collected by this Prometheus instance.
+  external_labels:
+    env: 'sandbox'
+
+#rule_files:
+#  - '/etc/prometheus/alert.rules'
+
+scrape_configs:
+# The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+
+  # Panamax
+  - job_name: 'prometheus'
+    target_groups:
+      - targets: ['172.18.0.1:8080']
+        labels:
+          group: 'docker-host'
